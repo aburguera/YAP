@@ -1,5 +1,7 @@
 # YAP - Yet Another Platformer
 
+![Yet Another Platformer](https://github.com/aburguera/YAP/blob/master/YAP.PNG)
+
 A basic platformer videogame coded in MC68000 assembly language using the EASy68K environment. It is aimed at providing students an example of medium complexity code.
 
 * [Video of game with full specs](https://youtu.be/aAjG8LMOUrw)
