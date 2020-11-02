@@ -11,9 +11,7 @@ A basic platformer videogame coded in MC68000 assembly language using the EASy68
 
 This game is coded in MC68000 language but it relies on the graphics, sound and file system simulated by EASy68K. If you want to play the game you need the EASy68K assembler and simulator available at www.easy68k.com.
 
-Please take into account that the provided code is NOT complete, since it is part of a lab assignment. The missing part is SYSTEM.X68. If you want to execute this game you first have to complete SYSTEM.X68. Instructions on how to complete it are within the file itself. The game will NOT run unless a properly programmed SYSTEM.X68 is coded.
-
-Providing that you have properly coded SYSTEM.X68, you just have to open MAIN.X68 from EASy68K editor and run it.
+To play the game just open MAIN.X68 from the EASy68K editor and run it.
 
 ## Editing the game
 
