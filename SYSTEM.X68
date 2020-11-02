@@ -1,5 +1,12 @@
 ; =============================================================================
-; SYSTEM MANAGEMENT (SYSTEM CODE)
+; TITLE    : SYSTEM MANAGEMENT (SYSTEM CODE)
+; AUTHOR   : ANTONI BURGUERA
+; COMMENTS : IT IS DIVIDED IN THREE BLOCKS:
+;            - SYS : GENERIC.
+;            - SCR : SCREEN MANAGEMENT.
+;            - KBD : KEYBOARD MANAGEMENT.
+; HISTORY  : XX-XXX-201X - CREATION
+;            11-OCT-2020 - MINOR CHANGES
 ; =============================================================================
 
 ; -----------------------------------------------------------------------------
@@ -28,20 +35,34 @@ SCRINIT
 ; OUTPUT   - NONE
 ; MODIFIES - D0,D1,D2,D3
 ; -----------------------------------------------------------------------------
-            ; TO DO:
-            ; - DISABLE INTS (SET INT BITS IN SR TO 111)
-            ; - INSTALL SCRUPD INTO TRAP SCRTRAP
-            ; - SET RESOLUTION TO SCRWIDTH X SCRHEIGHT
-            ; - SET WINDOWED MODE
-            ; - CLEAR VISIBLE BUFFER
-            ; - ENABLE DOUBLE BUFFER
-            ; - CLEAR HIDDEN BUFFER
-            ; - INSTALL SCRISR FOR IRQ SCRIRQ (IRQ INTERRUPT VECTOR BEGINS
-            ;   AT $60. INSTALLATION IS SIMILAR TO TRAP INSTALLATION)
-            ; - ENABLE AUTO-IRQ EVERY SCRTIM MS FOR IRQ SCRIRQ (SEE TRAP #15
-            ;   TASK 32)
-            ; - CLEAR SCRINTCT AND SCRCYCCT
-            ; - ENABLE INTS (SET INT BITS IN SR TO 000)
+            ORI.W   #$0700,SR               ; DISABLE ALL INT
+            MOVE.L  #SCRUPD,($80+SCRTRAP*4) ; INSTALL TRAP
+            MOVE.L  #SCRWIDTH<<16|SCRHEIGH,D1 ; SET RESOLUTION
+            MOVE.B  #33,D0
+            TRAP    #15
+            MOVE.L  #1,D1                   ; SET WINDOWED MODE
+            TRAP    #15
+            MOVE.W  #$FF00,D1               ; CLEAR VISIBLE BUFFER
+            MOVE.B  #11,D0
+            TRAP    #15
+            MOVE.B  #17,D1                  ; ENABLE DOUBLE BUFFER
+            MOVE.B  #92,D0
+            TRAP    #15
+            MOVE.W  #$FF00,D1               ; CLEAR HIDDEN BUFFER
+            MOVE.B  #11,D0
+            TRAP    #15
+            MOVE.L  #SCRISR,($60+SCRIRQ*4)  ; SET EXCEPTION VECTOR
+            MOVE.B  #5,D1                   ; ENABLE EXCEPTION PROCESSING
+            MOVE.B  #32,D0
+            TRAP    #15
+            MOVE.B  #%10000000|SCRIRQ,D2    ; ENABLE AUTO-IRQ
+            MOVE.B  #SCRTIM,D3
+            MOVE.B  #6,D1
+            MOVE.B  #32,D0
+            TRAP    #15
+            CLR.B   (SCRINTCT)              ; PREPARE INTERRUPT FLAG
+            CLR.B   (SCRCYCCT)              ; PREPARE CYCLE COUNTER
+            ANDI.W  #$F8FF,SR               ; ENABLE INTS
             RTS
 
 ; -----------------------------------------------------------------------------
@@ -63,7 +84,13 @@ SCRUPD
 ; OUTPUT   - NONE
 ; MODIFIES - NONE
 ; -----------------------------------------------------------------------------
-            ; TO DO: UPDATE DOUBLE BUFFER AND CLEAR HIDDEN BUFFER
+            MOVEM.W D0-D1,-(A7)
+            MOVE.B  #94,D0                  ; UPDATE DOUBLE BUFFER
+            TRAP    #15
+            MOVE.W  #$FF00,D1               ; CLEAR HIDDEN BUFFER
+            MOVE.B  #11,D0
+            TRAP    #15
+            MOVEM.W (A7)+,D0-D1
             RTE
 
 ; =============================================================================
@@ -92,8 +119,27 @@ KBDREAD
 ; OUTPUT   - (KBDVAL) AND (KBDEDGE)
 ; MODIFIES - NONE
 ; -----------------------------------------------------------------------------
-            ; TO DO: UPDATE KBDVAL AND KBDEDGE
+            MOVEM.L D0-D3,-(A7)
+            MOVE.B  #19,D0
+            MOVE.L  #KBDPAUSE<<24+KBDFIRE3<<16+KBDFIRE2<<8+KBDFIRE1,D1
+            TRAP    #15
+            BSR     .STORE                  ; STORE FIRE1,FIRE2,FIRE3 AND PAUSE
+            MOVE.L  #KBDDOWN<<24+KBDRIGHT<<16+KBDUP<<8+KBDLEFT,D1
+            TRAP    #15
+            BSR     .STORE                  ; STORE KEY UP,DOWN,LEFT AND RIGTH.
+            MOVE.B  (KBDVAL),D0             ; COMPUTE EDGE.
+            NOT.B   D0                      ; EDGE=NOT(PREVIOUS) AND CURRENT.
+            AND.B   D2,D0
+            MOVE.B  D2,(KBDVAL)             ; STORE VALUES (PRESS AND EDGE)
+            MOVE.B  D0,(KBDEDGE)
+            MOVEM.L (A7)+,D0-D3
             RTE
+
+.STORE      MOVE.W  #3,D3                   ; TRANSLATES THE 8-BIT ENCODING
+.LOOP       LSL.L   #8,D1                   ; OF TRAP #15 TASK 19 INTO A 1-BIT
+            ROXL.B  #1,D2                   ; PER KEYPRESS ENCODING
+            DBRA.W  D3,.LOOP
+            RTS
 
 ; =============================================================================
 ; DYNAMIC MEMORY MANAGEMENT (SYSTEM CODE)
@@ -219,10 +265,3 @@ DMMFREE
             CLR.W   (A0)
             MOVEM.L (A7)+,D0/A0
             RTS
-
-
-
-*~Font name~Courier New~
-*~Font size~10~
-*~Tab type~0~
-*~Tab size~4~
